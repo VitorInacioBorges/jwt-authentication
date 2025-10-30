@@ -1,6 +1,7 @@
 /* 
 creates a reusable hash function for passwords 
-and creates a function to compare passwords 
+and creates a function to compare passwords based
+on bcrypt encryption
 */
 
 import bcrypt from "bcryptjs";
