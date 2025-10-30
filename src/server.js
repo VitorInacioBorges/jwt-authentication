@@ -1,0 +1,1 @@
+// configures dotenv, try to connect to mongodb database and initiates the server on port desired
