@@ -16,13 +16,51 @@ function ensureValidInfo({ name, email, password }) {
 }
 
 export default {
-  async createUser(data) {},
+  async createUser(data) {
+    ensureValidInfo(data);
 
-  async listUsers() {},
+    const emailExists = await repo.findByEmail(data.email);
+    if (emailExists) {
+      throw createError("Email already registered.", 409);
+    }
 
-  async getUser(id) {},
+    const hashedPassword = hashPassword(data.password);
 
-  async updateUser(id) {},
+    return repo.create({
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
+      password: hashedPassword,
+    });
+  },
 
-  async deleteUser(id) {},
+  async listUsers() {
+    return repo.findAll();
+  },
+
+  async getUser(id) {
+    const user = await repo.findById(id);
+    if (!user) {
+      throw createError("User not found.", 409);
+    }
+    return user;
+  },
+
+  // uses the id of the user to be updated and the new data as arguments
+  async updateUser(id, data) {
+    const payload = { ...data };
+
+    if(payload.email) {
+      if(!payload.email.includes("@")){
+        throw createError("Email has to contain `@`", 400);
+      }
+      const existing = await 
+    }
+  },
+
+  async deleteUser(id) {
+    const user = await repo.deleteById(id);
+    if (!user) {
+      throw createError("User not found.", 409);
+    }
+  },
 };

@@ -1,4 +1,4 @@
-# 🧱 Estrutura do Projeto
+# 🧱 API de Usuários com Arquitetura MVC
 
 Este projeto segue o padrão **MVC (Model–View–Controller)** com **camadas adicionais de Service e Repository**, muito comum em aplicações **Node.js + Express + MongoDB**.
 Essa estrutura facilita a **organização do código**, o **reaproveitamento de lógica** e a **manutenção** a longo prazo.
@@ -349,11 +349,9 @@ export function requireFields(fields = []) {
       (f) => req.body?.[f] == null || req.body[f] === ""
     );
     if (missing.length) {
-      return res
-        .status(400)
-        .json({
-          message: `Campos obrigatórios ausentes: ${missing.join(", ")}`,
-        });
+      return res.status(400).json({
+        message: `Campos obrigatórios ausentes: ${missing.join(", ")}`,
+      });
     }
     next();
   };
