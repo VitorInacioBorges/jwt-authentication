@@ -32,12 +32,12 @@ export default {
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
       password: hashedPassword,
-      roule: [data.roule],
+      role: data.role || ["user"],
     });
 
-    tokenGenerator(user);
+    const token = tokenGenerator(user);
 
-    return user;
+    return { user, token };
   },
 
   async listUsers() {
@@ -78,12 +78,12 @@ export default {
     // transforms the properties of payload object in an array of keys
     // checks if the array has any properties undefined
     // if it has then the program deletes it
-    Objects.keys(payload).forEach((key) => {
+    Object.keys(payload).forEach((key) => {
       if (payload[key] === undefined) delete payload[key];
     });
 
     // if the array of keys has no elements than it throws an error
-    if (Objects.keys(payload).length() === 0) {
+    if (Object.keys(payload).length === 0) {
       throw createError("No field completed for updating.", 400);
     }
 
