@@ -18,6 +18,13 @@ const user_schema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    roule: {
+      type: [String],
+      enum: ["USER", "ADMIN"],
+      default: ["USER"],
+      required: true,
+    },
   },
   { timestamps: true }
 );
