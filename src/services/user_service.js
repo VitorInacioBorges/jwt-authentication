@@ -7,6 +7,7 @@ listing and updating
 import repo from "../repositories/user_repository.js";
 import createError from "../utils/app_error.js";
 import hashPassword from "../utils/hash_password.js";
+import tokenGenerator from "../utils/token_generator.js";
 
 // ensures that every property is valid
 function ensureValidInfo({ name, email, password }) {
@@ -27,11 +28,16 @@ export default {
 
     const hashedPassword = hashPassword(data.password);
 
-    return repo.create({
+    const user = await repo.create({
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
       password: hashedPassword,
+      roule: [data.roule],
     });
+
+    tokenGenerator(user);
+
+    return user;
   },
 
   async listUsers() {
