@@ -7,16 +7,8 @@ import { authMiddleware, requireRole } from "../middlewares/auth_middleware.js";
 
 const router = Router();
 
-// Public route (sign up)
+// Public routes
 router.post("/user", user_controller.create);
-
-// Protected routes
-router.get(
-  "/users",
-  authMiddleware(),
-  requireRole("ADMIN"),
-  user_controller.list
-);
 
 router.get("/users/:id", authMiddleware(), ensureValidId, user_controller.get);
 
@@ -25,6 +17,14 @@ router.put(
   authMiddleware(),
   ensureValidId,
   user_controller.update
+);
+
+// Admin Routes
+router.get(
+  "/users",
+  authMiddleware(),
+  requireRole("ADMIN"),
+  user_controller.list
 );
 
 router.delete(
