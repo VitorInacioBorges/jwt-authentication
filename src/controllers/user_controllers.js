@@ -18,7 +18,7 @@ export default {
     try {
       await user_service.deleteUser(req.params.id);
       res.status(204).json(user);
-    } catch {
+    } catch (error) {
       next(error);
     }
   },
@@ -27,7 +27,7 @@ export default {
     try {
       const users = await user_service.listUsers();
       res.json(users);
-    } catch {
+    } catch (error) {
       next(error);
     }
   },
@@ -36,7 +36,7 @@ export default {
     try {
       const user = await user_service.getUser(req.params.id);
       res.json(user);
-    } catch {
+    } catch (error) {
       next(error);
     }
   },
@@ -45,7 +45,7 @@ export default {
     try {
       const user = await user_service.updateUser(req.params.id, req.body);
       res.json(user);
-    } catch {
+    } catch (error) {
       next(error);
     }
   },
