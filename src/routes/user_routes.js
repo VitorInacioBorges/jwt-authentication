@@ -3,13 +3,36 @@
 import { Router } from "express";
 import user_controller from "../controllers/user_controllers.js";
 import { ensureValidId } from "../middlewares/validate_middleware.js";
+import { authMiddleware, requireRole } from "../middlewares/auth_middleware.js";
 
 const router = Router();
 
+// Public route (sign up)
 router.post("/user", user_controller.create);
-router.get("/users", user_controller.list);
-router.get("/users/:id", ensureValidId, user_controller.get);
-router.put("/users/:id", ensureValidId, user_controller.update);
-router.delete("/users/:id", ensureValidId, user_controller.delete);
+
+// Protected routes
+router.get(
+  "/users",
+  authMiddleware(),
+  requireRole("ADMIN"),
+  user_controller.list
+);
+
+router.get("/users/:id", authMiddleware(), ensureValidId, user_controller.get);
+
+router.put(
+  "/users/:id",
+  authMiddleware(),
+  ensureValidId,
+  user_controller.update
+);
+
+router.delete(
+  "/users/:id",
+  authMiddleware(),
+  requireRole("ADMIN"),
+  ensureValidId,
+  user_controller.delete
+);
 
 export default router;

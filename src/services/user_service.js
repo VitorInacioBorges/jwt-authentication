@@ -32,7 +32,7 @@ export default {
       name: data.name.trim(),
       email: data.email.trim().toLowerCase(),
       password: hashedPassword,
-      role: data.role || ["user"],
+      role: data.role || ["USER"],
     });
 
     const token = tokenGenerator(user);
