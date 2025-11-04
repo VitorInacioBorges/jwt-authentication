@@ -49,4 +49,13 @@ export default {
       next(error);
     }
   },
+
+  async login(req, res, next) {
+    try {
+      await user_service.loginUser(req.body);
+      res.status(201).send({ message: "Login efetuado." });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

@@ -6,7 +6,7 @@ listing and updating
 
 import repo from "../repositories/user_repository.js";
 import createError from "../utils/app_error.js";
-import hashPassword from "../utils/hash_password.js";
+import { hashPassword, compareHashedPassword } from "../utils/hash_password.js";
 import tokenGenerator from "../utils/token_generator.js";
 
 // ensures that every property is valid
@@ -38,6 +38,28 @@ export default {
     const token = tokenGenerator(user);
 
     return { user, token };
+  },
+
+  async loginUser(data) {
+    ensureValidInfo(data);
+
+    const payload = { ...data };
+    const userDatabase = await repo.findByEmail(data.email);
+
+    if (!userDatabase) {
+      throw createError("User not found.", 404);
+    }
+
+    const validatePassword = compareHashedPassword(
+      data.password,
+      userDatabase.password
+    );
+
+    if (!validatePassword) {
+      throw createError("Passwords are not the same.", 401);
+    }
+
+    tokenGenerator(payload);
   },
 
   async listUsers() {
