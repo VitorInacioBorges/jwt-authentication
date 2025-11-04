@@ -17,7 +17,7 @@ export default {
   async delete(req, res, next) {
     try {
       await user_service.deleteUser(req.params.id);
-      res.status(204).json(user);
+      res.status(204).send({ message: "User deleted." });
     } catch (error) {
       next(error);
     }
@@ -52,8 +52,8 @@ export default {
 
   async login(req, res, next) {
     try {
-      await user_service.loginUser(req.body);
-      res.status(201).send({ message: "Login efetuado." });
+      const result = await user_service.loginUser(req.body);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }

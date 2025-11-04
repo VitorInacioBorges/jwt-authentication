@@ -1,4 +1,4 @@
-export default function errorMiddleware(err, res, res, next) {
+export default function errorMiddleware(err, req, res, next) {
   const status = err.statusCode || 500;
   const message = status === 500 ? "Erro interno do servidor." : err.message;
 

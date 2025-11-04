@@ -7,11 +7,12 @@ import { authMiddleware, requireRole } from "../middlewares/auth_middleware.js";
 
 const router = Router();
 
-// Public routes
-router.post("/user", user_controller.create);
+// Unprotected Routes (no token verification)
+router.post("/user", user_controller.create); // generates token
 
-router.post("/user/login", authMiddleware(), user_controller.login);
+router.post("/user/login", user_controller.login); // generates token
 
+// Protected Routes (token verification)
 router.get("/users/:id", authMiddleware(), ensureValidId, user_controller.get);
 
 router.put(
@@ -21,8 +22,8 @@ router.put(
   user_controller.update
 );
 
-// Admin Routes
 router.get(
+  // only admin
   "/users",
   authMiddleware(),
   requireRole("ADMIN"),
@@ -30,6 +31,7 @@ router.get(
 );
 
 router.delete(
+  // only admin
   "/users/:id",
   authMiddleware(),
   requireRole("ADMIN"),

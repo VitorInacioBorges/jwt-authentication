@@ -17,14 +17,6 @@ export function tokenGenerator(data) {
   });
 }
 
-export function tokenValidation(data) {
-  const payload = {
-    _id: data._id,
-    email: data.email,
-    role: data.role,
-  };
-
-  return jwt.verify(payload, process.env.JWT_SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRATION,
-  });
+export function tokenValidation(token) {
+  return jwt.verify(token, process.env.JWT_SECRET_KEY);
 }

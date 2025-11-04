@@ -7,7 +7,7 @@ listing and updating
 import repo from "../repositories/user_repository.js";
 import createError from "../utils/app_error.js";
 import { hashPassword, compareHashedPassword } from "../utils/hash_password.js";
-import tokenGenerator from "../utils/token_generator.js";
+import { tokenGenerator } from "../utils/token_functions.js";
 
 // ensures that every property is valid
 function ensureValidInfo({ name, email, password }) {
@@ -41,9 +41,10 @@ export default {
   },
 
   async loginUser(data) {
-    ensureValidInfo(data);
+    if (!data?.email?.trim()) throw createError("Email cannot be blank.", 400);
+    if (!data?.password?.trim())
+      throw createError("Password cannot be blank.", 400);
 
-    const payload = { ...data };
     const userDatabase = await repo.findByEmail(data.email);
 
     if (!userDatabase) {
@@ -56,10 +57,12 @@ export default {
     );
 
     if (!validatePassword) {
-      throw createError("Passwords are not the same.", 401);
+      throw createError("Invalid password.", 401);
     }
 
-    tokenGenerator(payload);
+    const token = tokenGenerator(userDatabase);
+
+    return { user: userDatabase, token };
   },
 
   async listUsers() {

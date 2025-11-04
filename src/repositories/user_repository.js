@@ -1,6 +1,6 @@
 // manages mongoose saving and editing functions to better management
 
-import { User } from "../models/user_model.js";
+import User from "../models/user_model.js";
 
 export default {
   create(data) {
@@ -22,6 +22,6 @@ export default {
     return User.findByIdAndDelete(id);
   },
   findByEmail(email) {
-    return User.findOne({ email });
+    return User.findOne({ email }).select('+password');
   },
 };

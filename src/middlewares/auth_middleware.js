@@ -1,8 +1,8 @@
 // creates the authorization functions
 // one require the roles and the other verifies the json web token(jwt)
 
-import jwt from "jsonwebtoken";
 import createError from "../utils/app_error.js";
+import { tokenValidation } from "../utils/token_functions.js";
 
 export function authMiddleware() {
   return (req, _res, next) => {
@@ -14,14 +14,9 @@ export function authMiddleware() {
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.slice(7).trim()
       : authHeader.trim();
-    const secret = process.env.JWT_SECRET_KEY;
-
-    if (!secret) {
-      return next(createError("JWT_SECRET_KEY not informed.", 500));
-    }
 
     try {
-      const payload = jwt.verify(token, secret);
+      const payload = tokenValidation(token);
       req.user = payload;
       next();
     } catch (_error) {
