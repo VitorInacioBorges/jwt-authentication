@@ -110,8 +110,10 @@ npm install -D nodemon
 
 ```env
 DATABASE_URI=mongodb://localhost:27017/exemplo_users
-PORT=3000
-BCRYPT_SALT_ROUNDS=10
+JWT_SECRET_KEY = yoursecretjwtkey
+JWT_EXPIRATION = "7d"
+BCRYPT_SALT_ROUNDS = 10
+PORT = 3000
 ```
 
 ---
@@ -141,23 +143,37 @@ export async function connectDB(uri) {
 // src/models/user.model.js
 import mongoose from "mongoose";
 
-const UserSchema = new mongoose.Schema(
+const user_schema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true, minlength: 2 },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
     email: {
       type: String,
       required: true,
-      unique: true,
-      lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Invalid email"],
     },
-    passwordHash: { type: String, required: true, select: false },
+
+    passwordHash: {
+      type: String,
+      required: true,
+      select: false,
+    },
+
+    role: {
+      type: [String],
+      enum: ["USER", "ADMIN"],
+      default: ["USER"],
+      required: true,
+    },
   },
   { timestamps: true }
 );
 
-export const UserModel = mongoose.model("User", UserSchema);
+export default mongoose.model("user", user_schema);
 ```
 
 > Observação: armazenamos **`passwordHash`** (e não a senha em texto). O campo é `select: false` para não vazar por padrão.
@@ -168,37 +184,29 @@ export const UserModel = mongoose.model("User", UserSchema);
 
 ```js
 // src/repositories/user.repository.js
-import { UserModel } from "../models/user.model.js";
+import { User } from "../models/user_model.js";
 
-export const UserRepository = {
-  async create(data) {
-    const doc = await UserModel.create(data);
-    return doc.toObject();
+export default {
+  create(data) {
+    return User.create(data);
   },
-
-  async findAll() {
-    return UserModel.find().lean();
+  findAll() {
+    return User.find();
   },
-
-  async findById(id) {
-    return UserModel.findById(id).lean();
+  findById(id) {
+    return User.findById(id);
   },
-
-  async findByEmail(email, { includePassword = false } = {}) {
-    const query = UserModel.findOne({ email });
-    if (includePassword) query.select("+passwordHash");
-    return query.lean();
+  updateById(id, data) {
+    return User.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+    // new and runValidators properties
+    // new: true             -> return the updated document
+    // runValidators: true   -> runs mongoose schema validators during the update
   },
-
-  async updateById(id, data) {
-    return UserModel.findByIdAndUpdate(id, data, {
-      new: true,
-      runValidators: true,
-    }).lean();
+  deleteById(id) {
+    return User.findByIdAndDelete(id);
   },
-
-  async deleteById(id) {
-    return UserModel.findByIdAndDelete(id).lean();
+  findByEmail(email) {
+    return User.findOne({ email });
   },
 };
 ```
