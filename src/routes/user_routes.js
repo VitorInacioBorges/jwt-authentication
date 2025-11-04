@@ -10,6 +10,8 @@ const router = Router();
 // Public routes
 router.post("/user", user_controller.create);
 
+router.post("/user/login", authMiddleware(), user_controller.login);
+
 router.get("/users/:id", authMiddleware(), ensureValidId, user_controller.get);
 
 router.put(
