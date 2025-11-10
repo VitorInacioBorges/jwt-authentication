@@ -10,7 +10,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export function hashPassword(password) {
-  return bcrypt.hashSync(password, process.env.BCRYPT_SALT_ROUNDS); // generates a secure hash with a salt of 10
+  return bcrypt.hashSync(password, process.env.BCRYPT_SALT_ROUNDS || 10); // generates a secure hash with salt rounds specified or 10
 }
 
 export function compareHashedPassword(password, hashedPassword) {
