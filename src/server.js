@@ -10,9 +10,7 @@ const port = process.env.PORT || 3000;
 
 (async () => {
   try {
-    await connect(
-      process.env.MONGODB_URL || "mongodb://localhost:27017/users_api"
-    );
+    await connect(process.env.MONGODB_URL);
     app.listen(port, () => {
       console.log(`API listening on port ${port}`);
     });

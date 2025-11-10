@@ -22,6 +22,6 @@ export default {
     return User.findByIdAndDelete(id);
   },
   findByEmail(email) {
-    return User.findOne({ email }).select('+password');
+    return User.findOne({ email }).select("+password");
   },
 };

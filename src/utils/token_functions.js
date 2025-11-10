@@ -3,8 +3,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// TODO consertar o payload que precisa de _id quando for fazer o token
-
 export function tokenGenerator(data) {
   const payload = {
     _id: data._id,
