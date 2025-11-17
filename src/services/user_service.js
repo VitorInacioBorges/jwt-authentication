@@ -66,7 +66,7 @@ export default {
   },
 
   async listUsers() {
-    return repo.findAll();
+    return await repo.findAll();
   },
 
   async getUser(id) {

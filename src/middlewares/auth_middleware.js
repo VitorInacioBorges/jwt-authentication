@@ -31,7 +31,7 @@ export function requireRole(...allowedRoles) {
     if (!roles) {
       return next(createError("Forbidden.", 403));
     }
-    const list = Array.isArray(roles) ? roles : [roles];
+    const list = Array.isArray(roles) ? roles : roles;
     const permitted = list.some((r) => allowedRoles.includes(r));
     if (!permitted) {
       return next(createError("Forbidden.", 403));
