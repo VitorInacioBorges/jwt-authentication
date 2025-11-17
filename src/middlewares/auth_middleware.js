@@ -27,14 +27,13 @@ export function authMiddleware() {
 
 export function requireRole(...allowedRoles) {
   return (req, _res, next) => {
-    const roles = req.user?.role;
-    if (!roles) {
-      return next(createError("Forbidden.", 403));
+    const role = req.user?.role;
+    if (!role) {
+      return next(createError("User has no role!", 403));
     }
-    const list = Array.isArray(roles) ? roles : roles;
-    const permitted = list.some((r) => allowedRoles.includes(r));
+    const permitted = allowedRoles.includes(role);
     if (!permitted) {
-      return next(createError("Forbidden.", 403));
+      return next(createError("User is not an ADMIN!", 403));
     }
     next();
   };

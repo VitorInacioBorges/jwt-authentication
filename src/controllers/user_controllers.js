@@ -44,7 +44,9 @@ export default {
   async update(req, res, next) {
     try {
       const user = await user_service.updateUser(req.params.id, req.body);
-      res.json(user);
+      res
+        .status(200)
+        .send({ message: "Updated succesfully!", userUpdated: user });
     } catch (error) {
       next(error);
     }
@@ -53,7 +55,7 @@ export default {
   async login(req, res, next) {
     try {
       const result = await user_service.loginUser(req.body);
-      res.status(200).json(result);
+      res.status(200).send({ message: "Login efected!", userInfo: result });
     } catch (error) {
       next(error);
     }
