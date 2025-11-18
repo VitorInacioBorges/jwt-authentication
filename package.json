@@ -44,6 +44,7 @@
     "undefsafe": "^2.0.5"
   },
   "scripts": {
+    "build": "npm install",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },
