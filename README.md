@@ -167,506 +167,19 @@ jwt-authentication/
 
 ---
 
-## 📝 Implementação dos Arquivos Principais
-
-### 1) Conexão com o banco — `src/config/db.js`
-
-```js
-import mongoose from "mongoose";
-
-export default async function connect(uri) {
-  await mongoose.connect(uri);
-  console.log("MongoDB conectado!");
-}
-```
-
----
-
-### 2) Model — `src/models/user_model.js`
-
-```js
-import mongoose from "mongoose";
-
-const user_schema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: true,
-      select: false, // Não retorna por padrão em queries
-    },
-    role: {
-      type: [String],
-      enum: ["USER", "ADMIN"],
-      default: ["USER"],
-      required: true,
-    },
-  },
-  { timestamps: true }
-);
-
-export default mongoose.model("user", user_schema);
-```
-
-> **Observação**: O campo `password` é hash e tem `select: false` para não vazar em queries padrão.
-
----
-
-### 3) Repository — `src/repositories/user_repository.js`
-
-```js
-import User from "../models/user_model.js";
-
-export default {
-  create(data) {
-    return User.create(data);
-  },
-  findAll() {
-    return User.find();
-  },
-  findById(id) {
-    return User.findById(id);
-  },
-  updateById(id, data) {
-    return User.findByIdAndUpdate(id, data, {
-      new: true,
-      runValidators: true,
-    });
-  },
-  deleteById(id) {
-    return User.findByIdAndDelete(id);
-  },
-  findByEmail(email) {
-    return User.findOne({ email }).select("+password");
-  },
-};
-```
-
----
-
-### 4) Utilities — `src/utils/`
-
-#### `hash_password.js` - Hash e comparação de senhas
-
-```js
-import bcrypt from "bcryptjs";
-
-export function hashPassword(password) {
-  return bcrypt.hashSync(password, 10);
-}
-
-export function compareHashedPassword(password, hashedPassword) {
-  return bcrypt.compareSync(password, hashedPassword);
-}
-```
-
-#### `token_functions.js` - Geração e validação de JWT
-
-```js
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-export function tokenGenerator(data) {
-  const payload = {
-    _id: data._id,
-    email: data.email,
-    role: data.role,
-  };
-
-  return jwt.sign(payload, process.env.JWT_SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRATION,
-  });
-}
-
-export function tokenValidation(token) {
-  return jwt.verify(token, process.env.JWT_SECRET_KEY);
-}
-```
-
-#### `app_error.js` - Criador de erros HTTP
-
-```js
-export default function createError(message, status = 500) {
-  const error = new Error(message);
-  error.name = "HttpError";
-  error.statusCode = status;
-  return error;
-}
-```
-
----
-
-### 5) Service — `src/services/user_service.js`
-
-```js
-import repo from "../repositories/user_repository.js";
-import createError from "../utils/app_error.js";
-import { hashPassword, compareHashedPassword } from "../utils/hash_password.js";
-import { tokenGenerator } from "../utils/token_functions.js";
-
-function ensureValidInfo({ name, email, password }) {
-  if (!name?.trim()) throw createError("Name cannot be blank.", 400);
-  if (!email?.trim()) throw createError("Email cannot be blank.", 400);
-  if (!email.includes("@")) throw createError("Email must contain `@`.", 400);
-  if (!password?.trim()) throw createError("Password cannot be blank.", 400);
-}
-
-export default {
-  async createUser(data) {
-    ensureValidInfo(data);
-
-    const emailExists = await repo.findByEmail(data.email);
-    if (emailExists) {
-      throw createError("Email already registered.", 409);
-    }
-
-    const hashedPassword = hashPassword(data.password);
-
-    const user = await repo.create({
-      name: data.name.trim(),
-      email: data.email.trim().toLowerCase(),
-      password: hashedPassword,
-      role: data.role || ["USER"],
-    });
-
-    const token = tokenGenerator(user);
-
-    return { user, token };
-  },
-
-  async loginUser(data) {
-    if (!data?.email?.trim()) throw createError("Email cannot be blank.", 400);
-    if (!data?.password?.trim())
-      throw createError("Password cannot be blank.", 400);
-
-    const userDatabase = await repo.findByEmail(data.email);
-
-    if (!userDatabase) {
-      throw createError("User not found.", 404);
-    }
-
-    const validatePassword = compareHashedPassword(
-      data.password,
-      userDatabase.password
-    );
-
-    if (!validatePassword) {
-      throw createError("Invalid password.", 401);
-    }
-
-    const token = tokenGenerator(userDatabase);
-
-    return { user: userDatabase, token };
-  },
-
-  async listUsers() {
-    return repo.findAll();
-  },
-
-  async getUser(id) {
-    const user = await repo.findById(id);
-    if (!user) {
-      throw createError("User not found.", 404);
-    }
-    return user;
-  },
-
-  async updateUser(id, data) {
-    const payload = { ...data };
-
-    if (payload.email) {
-      if (!payload.email.includes("@")) {
-        throw createError("Invalid email", 400);
-      }
-      const existing = await repo.findByEmail(payload.email);
-      if (existing && existing.id !== id) {
-        throw createError("Email already registered.", 409);
-      }
-      payload.email = payload.email.toLowerCase();
-    }
-
-    if (payload.name) {
-      payload.name = payload.name.toLowerCase();
-    }
-
-    Object.keys(payload).forEach((key) => {
-      if (payload[key] === undefined) delete payload[key];
-    });
-
-    if (Object.keys(payload).length === 0) {
-      throw createError("No field completed for updating.", 400);
-    }
-
-    const updated = await repo.updateById(id, payload);
-    if (!updated) {
-      throw createError("User not found.", 404);
-    }
-    return updated;
-  },
-
-  async deleteUser(id) {
-    const user = await repo.deleteById(id);
-    if (!user) {
-      throw createError("User not found.", 404);
-    }
-  },
-};
-```
-
----
-
-### 6) Middlewares — `src/middlewares/`
-
-#### `auth_middleware.js` - Autenticação JWT e autorização por role
-
-```js
-import createError from "../utils/app_error.js";
-import { tokenValidation } from "../utils/token_functions.js";
-
-export function authMiddleware() {
-  return (req, _res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return next(createError("Token not informed.", 401));
-    }
-
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7).trim()
-      : authHeader.trim();
-
-    try {
-      const payload = tokenValidation(token);
-      req.user = payload;
-      next();
-    } catch (_error) {
-      next(createError("Token is invalid or expired.", 401));
-    }
-  };
-}
-
-export function requireRole(...allowedRoles) {
-  return (req, _res, next) => {
-    const roles = req.user?.role;
-    if (!roles) {
-      return next(createError("Forbidden.", 403));
-    }
-    const list = Array.isArray(roles) ? roles : [roles];
-    const permitted = list.some((r) => allowedRoles.includes(r));
-    if (!permitted) {
-      return next(createError("Forbidden.", 403));
-    }
-    next();
-  };
-}
-```
-
-#### `error_middleware.js` - Tratamento centralizado de erros
-
-```js
-export default function errorMiddleware(err, req, res, next) {
-  const status = err.statusCode || 500;
-  const message = status === 500 ? "Erro interno do servidor." : err.message;
-
-  if (status === 500) {
-    console.error("[ERROR]", err);
-  }
-
-  res.status(status).json({
-    error: message,
-  });
-}
-```
-
-#### `validate_middleware.js` - Validação de ObjectId do MongoDB
-
-```js
-import mongoose from "mongoose";
-import createError from "../utils/app_error.js";
-
-export function ensureValidId(req, res, next) {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    throw createError("Invalid ID.", 400);
-  }
-  next();
-}
-```
-
----
-
-### 7) Controller — `src/controllers/user_controllers.js`
-
-```js
-import user_service from "../services/user_service.js";
-
-export default {
-  async create(req, res, next) {
-    try {
-      const user = await user_service.createUser(req.body);
-      res.status(201).json(user);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async login(req, res, next) {
-    try {
-      const result = await user_service.loginUser(req.body);
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async list(req, res, next) {
-    try {
-      const users = await user_service.listUsers();
-      res.json(users);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async get(req, res, next) {
-    try {
-      const user = await user_service.getUser(req.params.id);
-      res.json(user);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async update(req, res, next) {
-    try {
-      const user = await user_service.updateUser(req.params.id, req.body);
-      res.json(user);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async delete(req, res, next) {
-    try {
-      await user_service.deleteUser(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  },
-};
-```
-
----
-
-### 8) Routes — `src/routes/user_routes.js`
-
-```js
-import { Router } from "express";
-import user_controller from "../controllers/user_controllers.js";
-import { ensureValidId } from "../middlewares/validate_middleware.js";
-import { authMiddleware, requireRole } from "../middlewares/auth_middleware.js";
-
-const router = Router();
-
-// 🔓 Unprotected Routes (no token required)
-router.post("/user", user_controller.create); // Sign up
-router.post("/user/login", user_controller.login); // Login
-
-// 🔒 Protected Routes (requires valid JWT token)
-router.get("/users/:id", authMiddleware(), ensureValidId, user_controller.get);
-router.put(
-  "/users/:id",
-  authMiddleware(),
-  ensureValidId,
-  user_controller.update
-);
-
-// 🛡️ Admin-Only Routes (requires JWT + ADMIN role)
-router.get(
-  "/users",
-  authMiddleware(),
-  requireRole("ADMIN"),
-  user_controller.list
-);
-router.delete(
-  "/users/:id",
-  authMiddleware(),
-  requireRole("ADMIN"),
-  ensureValidId,
-  user_controller.delete
-);
-
-export default router;
-```
-
----
-
-### 9) App — `src/app.js`
-
-```js
-import express from "express";
-import user_routes from "./routes/user_routes.js";
-import error_middleware from "./middlewares/error_middleware.js";
-
-const app = express();
-
-app.use(express.json());
-app.use("/api", user_routes);
-app.use(error_middleware);
-
-export default app;
-```
-
----
-
-### 10) Server — `src/server.js`
-
-```js
-import dotenv from "dotenv";
-import app from "./app.js";
-import connect from "./config/db.js";
-
-dotenv.config();
-
-const port = process.env.PORT || 3000;
-
-(async () => {
-  try {
-    await connect(
-      process.env.MONGODB_URL || "mongodb://localhost:27017/users_api"
-    );
-    app.listen(port, () => {
-      console.log(`API listening on port ${port}`);
-    });
-  } catch (error) {
-    console.error("Error trying to connect to the database", error);
-    process.exit(1);
-  }
-})();
-```
-
----
-
 ## 🧪 Testando a API
 
 ### Rodando o servidor
 
 ```bash
-# Desenvolvimento (com hot reload)
-npm run dev
+# Build e instalação de dependências com base no package.json
+npm run build
 
-# Produção
+# Iniciar servidor e aplicação (deploy único)
 npm start
+
+# Iniciar servidor e aplicação (teste de desenvolvimento)
+npm run dev
 ```
 
 ### Endpoints Disponíveis
@@ -676,13 +189,13 @@ npm start
 ##### 1. **Criar Usuário (Sign Up)**
 
 ```bash
-POST /api/user
+POST /api/users
 Content-Type: application/json
 
 {
   "name": "Ada Lovelace",
   "email": "ada@example.com",
-  "password": "123456"
+  "password": "supersecretpassword"
 }
 ```
 
@@ -694,9 +207,11 @@ Content-Type: application/json
     "_id": "507f1f77bcf86cd799439011",
     "name": "Ada Lovelace",
     "email": "ada@example.com",
+    "password": "supersecretpassword",
     "role": ["USER"],
     "createdAt": "2025-11-04T10:00:00.000Z",
-    "updatedAt": "2025-11-04T10:00:00.000Z"
+    "updatedAt": "2025-11-04T10:00:00.000Z",
+    "_v": "0"
   },
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
@@ -705,7 +220,7 @@ Content-Type: application/json
 ##### 2. **Login**
 
 ```bash
-POST /api/user/login
+POST /api/users/login
 Content-Type: application/json
 
 {
@@ -722,6 +237,7 @@ Content-Type: application/json
     "_id": "507f1f77bcf86cd799439011",
     "name": "Ada Lovelace",
     "email": "ada@example.com",
+    "password": "supersecretpassword",
     "role": ["USER"]
   },
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -761,6 +277,24 @@ Content-Type: application/json
 ```bash
 GET /api/users
 Authorization: Bearer <seu-token-jwt-admin>
+```
+
+**Resposta:**
+
+```json
+{
+  "user": {
+    (...)
+  },
+  "token": "eyJhbGciOiJIUzI..."
+}
+{
+  "user": {
+    (...)
+  },
+  "token": "2dWdsjkdsWDDOsSs..."
+}
+(...)
 ```
 
 ##### 6. **Deletar Usuário**
@@ -853,55 +387,6 @@ curl -X DELETE http://localhost:3000/api/users/<ID> \
 
 ---
 
-## 📚 Conceitos Importantes
-
-### JWT (JSON Web Token)
-
-- Token autocontido que carrega informações do usuário
-- Composto por: Header + Payload + Signature
-- Não precisa consultar banco para validar (stateless)
-- Payload contém: `_id`, `email`, `role`
-
-### Bcrypt
-
-- Algoritmo de hash adaptativo
-- Salt rounds = 10 (configurável)
-- Mesmo senha = hash diferente (devido ao salt)
-- Irreversível (não pode ser descriptografado)
-
-### Middleware Chain
-
-- Funções executadas em sequência antes do controller
-- `authMiddleware()` → valida token
-- `requireRole("ADMIN")` → valida permissão
-- `ensureValidId` → valida formato do ID
-- `errorMiddleware` → captura erros de toda aplicação
-
----
-
-## 🎯 Diferença entre Endpoints Protegidos e Não Protegidos
-
-| Tipo           | Rotas                                        | Autenticação                 | Uso                       |
-| :------------- | :------------------------------------------- | :--------------------------- | :------------------------ |
-| **Públicas**   | `POST /api/user`<br>`POST /api/user/login`   | ❌ Não requer token          | Sign up e login           |
-| **Protegidas** | `GET /api/users/:id`<br>`PUT /api/users/:id` | ✅ Requer token válido       | Operações autenticadas    |
-| **Admin**      | `GET /api/users`<br>`DELETE /api/users/:id`  | ✅ Requer token + role ADMIN | Operações administrativas |
-
----
-
-## 🚀 Próximos Passos
-
-- [ ] Implementar refresh tokens
-- [ ] Adicionar validação de email
-- [ ] Implementar recuperação de senha
-- [ ] Adicionar testes unitários e de integração
-- [ ] Configurar CI/CD
-- [ ] Documentar API com Swagger/OpenAPI
-- [ ] Adicionar logs estruturados
-- [ ] Implementar rate limiting
-
----
-
 ## 📄 Licença
 
 MIT
@@ -910,5 +395,7 @@ MIT
 
 ## 👨‍💻 Autor
 
-**Vitor Inácio Borges**  
-GitHub: [@VitorInacioBorges](https://github.com/VitorInacioBorges)
+**Vitor Inácio Borges**
+
+GitHub: [@VitorInacioBorges](https://github.com/VitorInacioBorges) <br>
+Instagram: [@vitor.inaciob](https://github.com/VitorInacioBorges)

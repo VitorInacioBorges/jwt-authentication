@@ -112,6 +112,8 @@ export default {
       throw createError("No field completed for updating.", 400);
     }
 
+    payload.password = hashPassword(payload.password);
+
     const updated = await repo.updateById(id, payload);
     if (!updated) {
       throw createError("User not found.", 404);
