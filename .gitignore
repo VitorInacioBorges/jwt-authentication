@@ -3,6 +3,3 @@
 
 # Environment variables
 .env
-
-# Test environment variables
-/jest/.env.test

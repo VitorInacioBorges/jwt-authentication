@@ -1,3 +1,5 @@
+// unit tests configuration
+
 import path from "path";
 import { fileURLToPath } from "url";
 
