@@ -1,5 +1,5 @@
 const { bootstrapTest } = require("../src/__tests__/testUtils.js");
-const UserModel = require("../src/models/user.model.js").default;
+const UserModel = require("../src/models/user_model.js").default;
 
 let dbInstance;
 let mongoServer;

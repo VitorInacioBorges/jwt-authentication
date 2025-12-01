@@ -51,7 +51,10 @@
   "scripts": {
     "build": "npm install",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "jest -c jest/jest.runner-config.js",
+    "test:unit": "jest -c jest/jest.config.js",
+    "test:int": "jest -c jest/jest.int-config.js"
   },
   "repository": {
     "type": "git",

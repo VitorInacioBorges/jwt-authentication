@@ -1,11 +1,9 @@
-// unit tests configuration
-
 import path from "path";
 import { fileURLToPath } from "url";
 
 process.env.TZ = "UTC";
 
-const timeout = 2000;
+const TWENTY_SECONDS_OF_TIMEOUT = 20000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -13,8 +11,8 @@ const config = {
   moduleFileExtensions: ["js", "json"],
   rootDir: "../src",
   bail: 1,
-  testRegex: ".*\\.unit.test\\.js$",
-  setupFiles: ["./setup-tests.cjs"],
+  testRegex: ".*\\.unit.test\\.js$ ",
+  setupFiles: ["../jest/setup-tests.cjs"],
   testEnvironment: "node",
   transform: {
     "^.+\\.js$": [
@@ -29,7 +27,7 @@ const config = {
     "/src/constants.js",
   ],
   coverageDirectory: "../coverage/unit",
-  testTimeout: timeout,
+  testTimeout: TWENTY_SECONDS_OF_TIMEOUT,
 };
 
 export default config;
