@@ -23,10 +23,13 @@ describe("when trying to update an user", () => {
       newUser
     );
 
-    hashPassword(created_user.password);
+    const found_user = await user_model.findOne(updated_user);
 
     expect(updated_user).toBeDefined();
-    expect(created_user._id).toBe(updated_user._id);
-    expect(findOne(updated_user)).toStrictEqual(created_user);
+    expect(created_user._id).toEqual(updated_user._id);
+    expect(found_user).toBeDefined();
+    expect(found_user._id).toEqual(created_user._id);
+    expect(found_user.name).toBe(created_user.name);
+    expect(found_user.email).toBe(created_user.email);
   });
 });
